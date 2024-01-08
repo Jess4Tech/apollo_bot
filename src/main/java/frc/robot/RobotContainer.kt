@@ -7,6 +7,8 @@ import edu.wpi.first.wpilibj2.command.Subsystem
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import frc.robot.subsystems.PlaceholderSubsystem.runOnce
 import frc.robot.subsystems.SwerveSubsystem
+import kotlin.concurrent.thread
+import kotlin.math.roundToInt
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -21,37 +23,39 @@ import frc.robot.subsystems.SwerveSubsystem
  */
 object RobotContainer
 {
+    var driverController: CommandXboxController? = CommandXboxController(Constants.DRIVER_CONSTANTS.DRIVER_CONTROLLER_PORT)
+
     init
     {
         SmartDashboard.putNumber("Front Left Angle", 0.0)
         configureBindings()
     }
 
-    private val driverController = CommandXboxController(Constants.DRIVER_CONSTANTS.DRIVER_CONTROLLER_PORT)
-
     /** Use this method to define your `trigger->command` mappings. */
     private fun configureBindings()
     {
-        driverController.leftTrigger().onTrue(FrontLeftAngleCommand())
+        if (driverController == null) {
+            println("Why the *fuck* is it null?")
+            driverController = CommandXboxController(Constants.DRIVER_CONSTANTS.DRIVER_CONTROLLER_PORT)
+        }
+
+        driverController!!.a().onTrue(runOnce {
+            print("UWU WE'RE ZEROING")
+            thread {
+                SwerveSubsystem.zeroMotors()
+            }
+        })
+
+        thread {
+            while (true) {
+                SmartDashboard.putNumber("Front Left Angle", SwerveSubsystem.frontLeftMotor.turnAngle.toDouble())
+            }
+        }
     }
 
     fun getAutonomousCommand(): Command?
     {
         // TODO: Implement properly
         return null
-    }
-}
-
-class FrontLeftAngleCommand: CommandBase() {
-    init {
-        addRequirements(SwerveSubsystem)
-    }
-
-    override fun initialize() {
-        SwerveSubsystem.setFrontLeftAngle(SmartDashboard.getNumber("Front Left Angle", 0.0))
-    }
-
-    override fun isFinished(): Boolean {
-        return true
     }
 }
